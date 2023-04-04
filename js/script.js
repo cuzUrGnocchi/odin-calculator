@@ -27,3 +27,15 @@ const calculator = {
         return this.memory;
     }
 };
+
+const display = document.querySelector('.display');
+document.addEventListener('keydown', keyDownHandler);
+
+function keyDownHandler(event) {
+    if (event.keyCode < 49 || event.keyCode > 57) return;
+    if (display.textContent.length >= 9) return;
+    if (event.keyCode === 49 && +display.textContent === 0) return;
+
+    const number = event.keyCode - 49;
+    display.textContent += number;
+}

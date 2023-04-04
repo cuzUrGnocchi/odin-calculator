@@ -1,0 +1,24 @@
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.calculator {
+    display: flex;
+    flex-direction: column;
+    width: fit-content;
+    height: 550px;
+    border: 1px solid black;
+}
+
+.display {
+    width: calc(9ch + 20px);
+    height: 65px;
+    margin: 10px;
+    padding: 0 10px; 
+    font-size: 55px;
+    border: 1px solid black;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
