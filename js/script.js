@@ -1,8 +1,5 @@
 const display = document.querySelector('span.display');
-const addition = document.querySelector('button.addition');
-const subtraction = document.querySelector('button.subtraction');
-const multiplication = document.querySelector('button.multiplication');
-const division = document.querySelector('button.division');
+const operatorButtons = document.querySelectorAll('button.operator')
 const numberButtons = document.querySelectorAll('button.number');
 
 const calculator = {
@@ -39,11 +36,7 @@ const calculator = {
     }
 };
 
-document.addEventListener('keydown', numberInputHandler);
-addition.addEventListener('click', operationHandler);
-subtraction.addEventListener('click', operationHandler);
-multiplication.addEventListener('click', operationHandler);
-division.addEventListener('click', operationHandler);
+operatorButtons.forEach(button => button.addEventListener('click', operationHandler));
 numberButtons.forEach(button => button.addEventListener('click', numberInputHandler));
 
 function numberInputHandler(event) {
@@ -55,7 +48,7 @@ function numberInputHandler(event) {
             input = '.';
         }
     } else if (event.type === 'click') {
-        input = +this.textContent;
+        input = this.textContent === '.' ? '.' : +this.textContent;
     }
 
     if (typeof input === 'number') {
@@ -78,6 +71,6 @@ function numberInputHandler(event) {
 function operationHandler(event) {
     if (calculator.waitingForNewOperand) return;
     const numberInDisplay = +display.textContent;
-    const operator = this.dataset.operator;
+    const operator = this.textContent === '*' ? x : this.textContent;
     display.textContent = calculator.evaluate(operator, numberInDisplay);
 }
