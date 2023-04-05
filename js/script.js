@@ -1,6 +1,8 @@
 const display = document.querySelector('span.display');
 const operatorButtons = document.querySelectorAll('button.operator')
 const numberButtons = document.querySelectorAll('button.number');
+const deleteButton = document.querySelector('button.backspace');
+const clearButton = document.querySelector('button.clear');
 
 const calculator = {
     memory: 0,
@@ -35,6 +37,7 @@ const calculator = {
     },
     clear() {
         this.memory = 0;
+        this.lastOperator = null;
         this.waitingForNewOperand = false;
         return this.memory;
     }
@@ -42,6 +45,8 @@ const calculator = {
 
 operatorButtons.forEach(button => button.addEventListener('click', operationHandler));
 numberButtons.forEach(button => button.addEventListener('click', numberInputHandler));
+clearButton.addEventListener('click', clearHandler);
+deleteButton.addEventListener('click', deleteHandler);
 
 function numberInputHandler(event) {
     let input;
@@ -76,4 +81,17 @@ function operationHandler(event) {
     const numberInDisplay = +display.textContent;
     const operator = this.textContent;
     display.textContent = calculator.evaluate(operator, numberInDisplay);
+}
+
+function clearHandler() {
+    display.textContent = 0;
+    calculator.clear();
+}
+
+function deleteHandler() {
+    if (display.textContent.length > 1) {
+        display.textContent = display.textContent.split('').slice(0, -1);
+    } else {
+        display.textContent = 0;
+    }
 }
