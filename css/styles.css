@@ -9,16 +9,26 @@
     flex-direction: column;
     width: fit-content;
     height: 550px;
+    padding: 10px;
     border: 1px solid black;
 }
 
 .display {
     width: calc(9ch + 20px);
     height: 65px;
-    margin: 10px;
+    margin-bottom: 10px;
     padding: 0 10px; 
     font-size: 55px;
     border: 1px solid black;
     text-align: right;
     font-variant-numeric: tabular-nums;
+}
+
+.button-container {
+    display: flex;
+    column-gap: 10px;
+}
+
+.button-container > button {
+    flex: 1 1 0;
 }
