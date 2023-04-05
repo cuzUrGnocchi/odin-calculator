@@ -7,8 +7,8 @@
 .calculator {
     display: flex;
     flex-direction: column;
-    width: fit-content;
-    height: 550px;
+    width: min-content;
+    height: min-content;
     padding: 10px;
     border: 1px solid black;
 }
@@ -27,8 +27,10 @@
 .button-container {
     display: flex;
     column-gap: 10px;
+    row-gap: 5px;
+    flex-wrap: wrap;
 }
 
-.button-container > button {
-    flex: 1 1 0;
+.button-container > * {
+    flex: 1 0 calc(25% - 12.5px);
 }
