@@ -22,7 +22,7 @@ body {
     border: 0.5px thin black;
 }
 
-.display {
+.screen {
     width: calc(9ch + 20px);
     margin-bottom: 15px;
     padding: 0 10px;
@@ -68,5 +68,5 @@ button.operator:first-of-type {
 }
 
 button.backspace, button.clear {
-    background-color: slateblue;
+    background-color: rgb(116, 101, 211);
 }

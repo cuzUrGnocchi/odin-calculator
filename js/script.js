@@ -1,97 +1,139 @@
-const display = document.querySelector('span.display');
+const screen = document.querySelector('span.screen');
 const operatorButtons = document.querySelectorAll('button.operator')
 const numberButtons = document.querySelectorAll('button.number');
 const deleteButton = document.querySelector('button.backspace');
 const clearButton = document.querySelector('button.clear');
 
 const calculator = {
+    screen: '0',
     memory: 0,
     lastOperator: null,
     waitingForNewOperand: false,
-    evaluate(operator, val) {
+    evaluate(operator) {
+        const operand = +this.screen;
         if (this.waitingForNewOperand) {
             this.lastOperator = operator;
-            return this.memory;
+            return;
         }
         switch (this.lastOperator) {
             case '+':
-                this.memory += val;
+                this.memory += operand;
                 break;
             case '-':
-                this.memory -= val;
+                this.memory -= operand;
                 break;
             case 'x':
-                this.memory *= val;
+                this.memory *= operand;
                 break;
             case '/':
-                this.memory /= val;
+                if (operand === 0) {
+                    this.waitingForNewOperand = true;
+                    this.lastOperator = null;
+                    this.screen = 'error!';
+                    return;
+                }
+                this.memory /= operand;
                 break;
             case '=':
             case null:
-                this.memory = val;
+                this.memory = operand;
                 break;
         }
-        this.waitingForNewOperand = operator !== '=';
+
+        if (this.memory.toFixed(0).toString().length > 9) { // result is too big
+            this.waitingForNewOperand = true;
+            this.lastOperator = null;
+            this.screen = 'error!';
+            return;
+        }
+
+        this.screen = this.memory.toString().length > 9 ?  // decimal places won't fit
+                      this.memory.toString().split('').slice(0, 9).join('') :
+                      this.screen = this.memory.toString();
+        this.waitingForNewOperand = operator === '=' ? false : true;
         this.lastOperator = operator;
-        return this.memory;
+    },
+    appendChar(char) {
+        if (this.screen.length >= 9 && !this.waitingForNewOperand) return;
+        if (char === 0 && screenText === '0') return;
+
+        if (char >= 0 && char <= 9) {
+            if (this.screen === '0' || this.waitingForNewOperand) {
+                this.waitingForNewOperand = false;
+                this.screen = char;
+            } else {
+                this.screen += char; 
+            }
+        } else if (char === '.') {
+            if (screen.textContent.includes('.')) return;
+            
+            this.screen += '.';
+        }
     },
     clear() {
+        this.screen = '0';
         this.memory = 0;
         this.lastOperator = null;
         this.waitingForNewOperand = false;
-        return this.memory;
+    },
+    backspace() {
+        if (this.screen.length > 1) {
+            this.screen = this.screen.split('').slice(0, -1).join('');
+        } else {
+            this.screen = '0';
+        }
     }
 };
 
-operatorButtons.forEach(button => button.addEventListener('click', operationHandler));
-numberButtons.forEach(button => button.addEventListener('click', numberInputHandler));
-clearButton.addEventListener('click', clearHandler);
-deleteButton.addEventListener('click', deleteHandler);
+document.addEventListener('keydown', keyDownHandler);
+operatorButtons.forEach(button => button.addEventListener('click', arithmeticHandler));
+numberButtons.forEach(button => button.addEventListener('click', numberClickHandler));
+clearButton.addEventListener('click', clearButtonHandler);
+deleteButton.addEventListener('click', backspaceButtonHandler);
 
-function numberInputHandler(event) {
-    let input;
-    if (event.type === 'keydown') {
-        if (event.keyCode >= 49 && event.keyCode <= 57) {
-            input = event.keyCode - 49;
-        } else if (event.keyCode === 190) { // e.g. dot
-            input = '.';
+function keyDownHandler(event) {
+    const char = String.fromCharCode(event.keyCode);
+    if (event.shiftKey === true) {
+        if (event.keyCode === 187) {
+            calculator.evaluate('+');
+        } else if (event.keyCode === 56) {
+            calculator.evaluate('x');
         }
-    } else if (event.type === 'click') {
-        input = this.textContent === '.' ? '.' : +this.textContent;
+    } else if (char >= 0 && char <= 9) {
+        calculator.appendChar(char);
+    } else if (event.keyCode === 190) {
+        calculator.appendChar('.');
+    } else if (char === '\b') {
+        calculator.backspace();
+    } else if (char === 'C') {
+        calculator.clear();
+    } else if (event.keyCode === 187) {
+        calculator.evaluate('=');
+    } else if (event.keyCode === 189) {
+        calculator.evaluate('-');
+    } else if (event.keyCode === 191) {
+        calculator.evaluate('/');
     }
-
-    if (typeof input === 'number') {
-        if (display.textContent.length >= 9 && !calculator.waitingForNewOperand) return;
-        if (input === 0 && display.textContent === '0') return;
-        
-        if (display.textContent === '0' || calculator.waitingForNewOperand) {
-            calculator.waitingForNewOperand = false;
-            display.textContent = input;
-        } else {
-            display.textContent += input; 
-        }
-    } else if (input === '.') {
-        if (display.textContent.includes('.')) return;
-        
-        display.textContent += '.';
-    }
+    screen.textContent = calculator.screen;
 }
 
-function operationHandler(event) {
-    const numberInDisplay = +display.textContent;
+function numberClickHandler(event) {
+    calculator.appendChar(this.textContent);
+    screen.textContent = calculator.screen;
+}
+
+function arithmeticHandler(event) {
     const operator = this.textContent;
-    display.textContent = calculator.evaluate(operator, numberInDisplay);
+    calculator.evaluate(operator);
+    screen.textContent = calculator.screen;
 }
 
-function clearHandler() {
-    display.textContent = 0;
+function clearButtonHandler() {
     calculator.clear();
+    screen.textContent = calculator.screen;
 }
 
-function deleteHandler() {
-    if (display.textContent.length > 1) {
-        display.textContent = display.textContent.split('').slice(0, -1);
-    } else {
-        display.textContent = 0;
-    }
+function backspaceButtonHandler() {
+    calculator.backspace();
+    screen.textContent = calculator.screen;
 }
