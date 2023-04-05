@@ -7,25 +7,29 @@ const calculator = {
     lastOperator: null,
     waitingForNewOperand: false,
     evaluate(operator, val) {
-        if (this.lastOperator === null) {
-            this.memory = val;
-        } else {
-            switch (this.lastOperator) {
-                case '+':
-                    this.memory += val;
-                    break;
-                case '-':
-                    this.memory -= val;
-                    break;
-                case '*':
-                    this.memory *= val;
-                    break;
-                case '/':
-                    this.memory /= val;
-                    break;
-            }
+        if (this.waitingForNewOperand) {
+            this.lastOperator = operator;
+            return this.memory;
         }
-        this.waitingForNewOperand = true;
+        switch (this.lastOperator) {
+            case '+':
+                this.memory += val;
+                break;
+            case '-':
+                this.memory -= val;
+                break;
+            case 'x':
+                this.memory *= val;
+                break;
+            case '/':
+                this.memory /= val;
+                break;
+            case '=':
+            case null:
+                this.memory = val;
+                break;
+        }
+        this.waitingForNewOperand = operator !== '=';
         this.lastOperator = operator;
         return this.memory;
     },
@@ -52,7 +56,7 @@ function numberInputHandler(event) {
     }
 
     if (typeof input === 'number') {
-        if (display.textContent.length >= 9) return;
+        if (display.textContent.length >= 9 && !calculator.waitingForNewOperand) return;
         if (input === 0 && display.textContent === '0') return;
         
         if (display.textContent === '0' || calculator.waitingForNewOperand) {
@@ -69,8 +73,7 @@ function numberInputHandler(event) {
 }
 
 function operationHandler(event) {
-    if (calculator.waitingForNewOperand) return;
     const numberInDisplay = +display.textContent;
-    const operator = this.textContent === '*' ? x : this.textContent;
+    const operator = this.textContent;
     display.textContent = calculator.evaluate(operator, numberInDisplay);
 }
