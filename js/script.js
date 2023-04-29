@@ -40,23 +40,24 @@ const calculator = {
                 break;
         }
 
-        if (this.memory.toFixed(0).toString().length > 9) { // result is too big
+        // result is too big
+        if (this.memory.toFixed(0).toString().length > 9) {
             this.waitingForNewOperand = true;
             this.lastOperator = null;
             this.screen = 'error!';
             return;
         }
 
-        this.screen = this.memory.toString().length > 9 ?  // decimal places won't fit
-            this.memory.toString().split('').slice(0, 9).join('') :
-            this.screen = this.memory.toString();
-        this.waitingForNewOperand = operator === '=' ? false : true;
+        // decimal places won't fit
+        this.screen = this.memory.toString().length > 9 ?  
+                this.memory.toString().split('').slice(0, 9).join('') :
+                this.screen = this.memory.toString();
         this.lastOperator = operator;
+        this.waitingForNewOperand = operator === '=' ? false : true;
     },
     appendChar(char) {
         if (this.screen.length >= 9 && !this.waitingForNewOperand) return;
         if (char === '0' && screenText === '0') return;
-
         if (char >= 0 && char <= 9) {
             if (this.screen === '0' || this.waitingForNewOperand) {
                 this.waitingForNewOperand = false;
@@ -66,7 +67,6 @@ const calculator = {
             }
         } else if (char === '.') {
             if (screen.textContent.includes('.')) return;
-
             this.screen += '.';
         }
     },
