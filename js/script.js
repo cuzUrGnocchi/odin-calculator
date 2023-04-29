@@ -111,7 +111,7 @@ const keyDownHandler = function keyDownHandler(event) {
     screen.textContent = calculator.screen;
 }
 
-const numberPressHandlerfunction = function numberPressHandler(event) {
+const numberPressHandler = function numberPressHandler(event) {
     calculator.appendChar(this.textContent);
     screen.textContent = calculator.screen;
 }
