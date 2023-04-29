@@ -48,25 +48,25 @@ const calculator = {
         }
 
         this.screen = this.memory.toString().length > 9 ?  // decimal places won't fit
-                      this.memory.toString().split('').slice(0, 9).join('') :
-                      this.screen = this.memory.toString();
+            this.memory.toString().split('').slice(0, 9).join('') :
+            this.screen = this.memory.toString();
         this.waitingForNewOperand = operator === '=' ? false : true;
         this.lastOperator = operator;
     },
     appendChar(char) {
         if (this.screen.length >= 9 && !this.waitingForNewOperand) return;
-        if (char === 0 && screenText === '0') return;
+        if (char === '0' && screenText === '0') return;
 
         if (char >= 0 && char <= 9) {
             if (this.screen === '0' || this.waitingForNewOperand) {
                 this.waitingForNewOperand = false;
                 this.screen = char;
             } else {
-                this.screen += char; 
+                this.screen += char;
             }
         } else if (char === '.') {
             if (screen.textContent.includes('.')) return;
-            
+
             this.screen += '.';
         }
     },
