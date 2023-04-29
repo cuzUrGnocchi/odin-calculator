@@ -88,7 +88,6 @@ const calculator = {
 };
 
 const keyDownHandler = function keyDownHandler(event) {
-    console.log(event.keyCode);
     const char = String.fromCharCode(event.keyCode);
     if (event.shiftKey && event.keyCode === 187) {
         calculator.evaluate('+');
