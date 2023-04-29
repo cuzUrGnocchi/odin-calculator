@@ -5,13 +5,21 @@ const deleteButton = document.querySelector('button.backspace');
 const clearButton = document.querySelector('button.clear');
 
 const calculator = {
-    screen: '0',
     memory: 0,
+    screen: '0',
     lastOperator: null,
-    waitingForNewOperand: false,
-    evaluate(operator) {
+    waitingNewOperand: false,
+    
+    evaluate: function evaluate(operator) {
         const operand = +this.screen;
-        if (this.waitingForNewOperand) {
+        if (this.operator === '/' && operand === 0) {
+            this.memory = 0;
+            this.screen = 'error!';
+            this.lastOperator = null;
+            this.waitingNewOperand = true;
+            return;
+        }
+        if (this.waitingNewOperand) {
             this.lastOperator = operator;
             return;
         }
@@ -26,12 +34,6 @@ const calculator = {
                 this.memory *= operand;
                 break;
             case '/':
-                if (operand === 0) {
-                    this.waitingForNewOperand = true;
-                    this.lastOperator = null;
-                    this.screen = 'error!';
-                    return;
-                }
                 this.memory /= operand;
                 break;
             case '=':
@@ -39,66 +41,65 @@ const calculator = {
                 this.memory = operand;
                 break;
         }
-
-        // result is too big
         if (this.memory.toFixed(0).toString().length > 9) {
-            this.waitingForNewOperand = true;
-            this.lastOperator = null;
+            this.memory = 0;
             this.screen = 'error!';
-            return;
+            this.lastOperator = null;
+            this.waitingNewOperand = true;
+        } else {
+            this.screen = this.memory.toString().length > 9
+                    ? this.memory.toString().split('').slice(0, 9).join('')
+                    : this.memory.toString();
+            this.lastOperator = operator;
+            this.waitingNewOperand = operator === '=' ? false : true;
         }
-
-        // decimal places won't fit
-        this.screen = this.memory.toString().length > 9 ?  
-                this.memory.toString().split('').slice(0, 9).join('') :
-                this.screen = this.memory.toString();
-        this.lastOperator = operator;
-        this.waitingForNewOperand = operator === '=' ? false : true;
     },
-    appendChar(char) {
-        if (this.screen.length >= 9 && !this.waitingForNewOperand) return;
-        if (char === '0' && screenText === '0') return;
-        if (char >= 0 && char <= 9) {
-            if (this.screen === '0' || this.waitingForNewOperand) {
-                this.waitingForNewOperand = false;
-                this.screen = char;
+
+    appendChar: function appendChar(input) {
+        if (/[0-9.]/.test(input) === false) return;
+        if (input === '0' && this.screen === '0') return;
+        if (!this.waitingNewOperand && this.screen.length >= 9) return;
+
+        if (input >= 0 && input <= 9) {
+            if (this.screen === '0' || this.waitingNewOperand) {
+                this.screen = input;
+                this.waitingNewOperand = false;
             } else {
-                this.screen += char;
+                this.screen += input;
             }
-        } else if (char === '.') {
+        } else if (input === '.') {
             if (screen.textContent.includes('.')) return;
             this.screen += '.';
         }
     },
-    clear() {
-        this.screen = '0';
+
+    clear: function clear() {
         this.memory = 0;
+        this.screen = '0';
         this.lastOperator = null;
-        this.waitingForNewOperand = false;
+        this.waitingNewOperand = false;
     },
-    backspace() {
-        if (this.screen.length > 1) {
-            this.screen = this.screen.split('').slice(0, -1).join('');
-        } else {
-            this.screen = '0';
-        }
+
+    backspace: function backspace() {
+        this.screen = this.screen.length > 1 
+                ? this.screen.split('').slice(0, -1).join('')
+                : '0';
     }
 };
 
-document.addEventListener('keydown', keyDownHandler);
-operatorButtons.forEach(button => button.addEventListener('click', arithmeticHandler));
-numberButtons.forEach(button => button.addEventListener('click', numberClickHandler));
-clearButton.addEventListener('click', clearButtonHandler);
-deleteButton.addEventListener('click', backspaceButtonHandler);
-
-function keyDownHandler(event) {
+const keyDownHandler = function keyDownHandler(event) {
+    console.log(event.keyCode);
     const char = String.fromCharCode(event.keyCode);
-    if (event.shiftKey === true) {
-        if (event.keyCode === 187) {
-            calculator.evaluate('+');
-        } else if (event.keyCode === 56) {
-            calculator.evaluate('x');
-        }
+    if (event.shiftKey && event.keyCode === 187) {
+        calculator.evaluate('+');
+    } else if (event.shiftKey && event.keyCode === 56) {
+        calculator.evaluate('x');
+    } else if (event.keyCode === 189) {
+        calculator.evaluate('-');
+    } else if (event.keyCode === 191) {
+        calculator.evaluate('/');
+    } else if (event.keyCode === 187 || event.keyCode === 13) {
+        calculator.evaluate('=');
     } else if (char >= 0 && char <= 9) {
         calculator.appendChar(char);
     } else if (event.keyCode === 190) {
@@ -107,33 +108,33 @@ function keyDownHandler(event) {
         calculator.backspace();
     } else if (char === 'C') {
         calculator.clear();
-    } else if (event.keyCode === 187) {
-        calculator.evaluate('=');
-    } else if (event.keyCode === 189) {
-        calculator.evaluate('-');
-    } else if (event.keyCode === 191) {
-        calculator.evaluate('/');
     }
     screen.textContent = calculator.screen;
 }
 
-function numberClickHandler(event) {
+const numberPressHandlerfunction = function numberPressHandler(event) {
     calculator.appendChar(this.textContent);
     screen.textContent = calculator.screen;
 }
 
-function arithmeticHandler(event) {
+const arithmeticPressHandler = function arithmeticPressHandler(event) {
     const operator = this.textContent;
     calculator.evaluate(operator);
     screen.textContent = calculator.screen;
 }
 
-function clearButtonHandler() {
+const clearPressHandler = function clearPressHandler() {
     calculator.clear();
     screen.textContent = calculator.screen;
 }
 
-function backspaceButtonHandler() {
+const backspacePressHandler = function backspacePressHandler() {
     calculator.backspace();
     screen.textContent = calculator.screen;
 }
+
+document.addEventListener('keydown', keyDownHandler);
+operatorButtons.forEach(button => button.addEventListener('click', arithmeticPressHandler));
+numberButtons.forEach(button => button.addEventListener('click', numberPressHandler));
+clearButton.addEventListener('click', clearPressHandler);
+deleteButton.addEventListener('click', backspacePressHandler);
