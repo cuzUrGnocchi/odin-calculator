@@ -94,13 +94,14 @@ const calculator = {
 
 const keyDownHandler = function keyDownHandler(event) {
     const char = String.fromCharCode(event.keyCode);
+    console.log(event.keyCode);
     if (event.shiftKey && event.keyCode === 187) {
         calculator.evaluate('+');
     } else if (event.shiftKey && event.keyCode === 56) {
         calculator.evaluate('x');
     } else if (event.keyCode === 189) {
         calculator.evaluate('-');
-    } else if (event.keyCode === 191) {
+    } else if (event.keyCode === 226) {
         calculator.evaluate('/');
     } else if (event.keyCode === 187 || event.keyCode === 13) {
         calculator.evaluate('=');
