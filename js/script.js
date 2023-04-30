@@ -9,16 +9,18 @@ const calculator = {
     screen: '0',
     lastOperator: null,
     waitingNewOperand: false,
-    errorOccured: false,
+    errorOccurred: false,
     
     evaluate: function evaluate(operator) {
+        let result;
         const operand = +this.screen;
+
         if (this.lastOperator === '/' && operand === 0) {
             this.memory = 0;
             this.screen = 'error!';
             this.lastOperator = null;
             this.waitingNewOperand = true;
-            this.errorOccured = true;
+            this.errorOccurred = true;
             return;
         }
         if (this.waitingNewOperand) {
@@ -27,36 +29,41 @@ const calculator = {
         }
         switch (this.lastOperator) {
             case '+':
-                this.memory += operand;
+                result = this.memory + operand;
                 break;
             case '-':
-                this.memory -= operand;
+                result = this.memory - operand;
                 break;
             case 'x':
-                this.memory *= operand;
+                result = this.memory * operand;
                 break;
             case '/':
-                this.memory /= operand;
+                result = this.memory / operand;
                 break;
             case '=':
             case null:
-                this.memory = operand;
+                result = operand;
                 break;
         }
-        if (this.memory.toFixed(0).toString().length > 9) {
+
+        // treat a result that is too big or too small for the screen as an error 
+        if (result.toFixed(0).length > 9 || (result > 0 && result < 1 && parseFloat(result.toFixed(7)) === 0)) {
             this.memory = 0;
             this.screen = 'error!';
             this.lastOperator = null;
             this.waitingNewOperand = true;
-            this.errorOccured = true;
-        } else {
-            this.screen = this.memory.toString().length > 9
-                    ? this.memory.toString().split('').slice(0, 9).join('')
-                    : this.memory.toString();
-            this.lastOperator = operator;
-            this.waitingNewOperand = operator === '=' ? false : true;
-            this.errorOccured = false;
+            this.errorOccurred = true;
+            return;
         }
+        
+        this.memory = result;
+        // make sure result doesn't overflow on screen with too many decimal digits and remove scientific notation
+        this.screen = result.toString().length > 9 || result.toString().includes('e')
+                ? result.toFixed(7)
+                : result.toString();
+        this.lastOperator = operator;
+        this.waitingNewOperand = operator === '=' ? false : true;
+        this.errorOccurred = false;
     },
 
     appendChar: function appendChar(input) {
@@ -75,6 +82,8 @@ const calculator = {
             if (screen.textContent.includes('.')) return;
             this.screen += '.';
         }
+
+        this.errorOccurred = false;
     },
 
     clear: function clear() {
@@ -82,10 +91,11 @@ const calculator = {
         this.screen = '0';
         this.lastOperator = null;
         this.waitingNewOperand = false;
+        this.errorOccurred = false;
     },
 
     backspace: function backspace() {
-        if (this.errorOccured) return;
+        if (this.errorOccurred) return;
         this.screen = this.screen.length > 1 
                 ? this.screen.split('').slice(0, -1).join('')
                 : '0';
@@ -94,7 +104,6 @@ const calculator = {
 
 const keyDownHandler = function keyDownHandler(event) {
     const char = String.fromCharCode(event.keyCode);
-    console.log(event.keyCode);
     if (event.shiftKey && event.keyCode === 187) {
         calculator.evaluate('+');
     } else if (event.shiftKey && event.keyCode === 56) {
