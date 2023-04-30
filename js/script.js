@@ -9,14 +9,16 @@ const calculator = {
     screen: '0',
     lastOperator: null,
     waitingNewOperand: false,
+    errorOccured: false,
     
     evaluate: function evaluate(operator) {
         const operand = +this.screen;
-        if (this.operator === '/' && operand === 0) {
+        if (this.lastOperator === '/' && operand === 0) {
             this.memory = 0;
             this.screen = 'error!';
             this.lastOperator = null;
             this.waitingNewOperand = true;
+            this.errorOccured = true;
             return;
         }
         if (this.waitingNewOperand) {
@@ -46,12 +48,14 @@ const calculator = {
             this.screen = 'error!';
             this.lastOperator = null;
             this.waitingNewOperand = true;
+            this.errorOccured = true;
         } else {
             this.screen = this.memory.toString().length > 9
                     ? this.memory.toString().split('').slice(0, 9).join('')
                     : this.memory.toString();
             this.lastOperator = operator;
             this.waitingNewOperand = operator === '=' ? false : true;
+            this.errorOccured = false;
         }
     },
 
@@ -81,6 +85,7 @@ const calculator = {
     },
 
     backspace: function backspace() {
+        if (this.errorOccured) return;
         this.screen = this.screen.length > 1 
                 ? this.screen.split('').slice(0, -1).join('')
                 : '0';
