@@ -77,6 +77,7 @@ class Calculator {
         result = this.memory - operand;
         break;
       case 'x':
+      case '*':
         result = this.memory * operand;
         break;
       case '/':
@@ -133,8 +134,8 @@ class Calculator {
 let calculator = new Calculator();
 
 document.addEventListener('keydown', function(event) {
-  if (['+', '-', 'x', '/', '='].includes(event.key)) {
-    calculator = calculator.calculate(event.key);
+  if (['+', '-', 'x', '*', '/', '=', 'Enter'].includes(event.key)) {
+    calculator = calculator.calculate(event.key === 'Enter' ? '=' : event.key);
   } else if (event.key >= 0 && event.key <= 9 || event.key === '.') {
     calculator = calculator.appendChar(event.key);
   } else if (event.key === 'Backspace') {
