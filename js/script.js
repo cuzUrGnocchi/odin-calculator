@@ -1,154 +1,167 @@
-const screen = document.querySelector('span.screen');
-const operatorButtons = document.querySelectorAll('button.operator')
-const numberButtons = document.querySelectorAll('button.number');
-const deleteButton = document.querySelector('button.backspace');
-const clearButton = document.querySelector('button.clear');
+class Calculator {
+  constructor() {
+    this.memory = 0;
+    this.screen = '0';
+    this.operator = null;
+    this.waitingNewOperand = false;
+    this.errorOccurred = false;
+  }
 
-const calculator = {
-    memory: 0,
-    screen: '0',
-    lastOperator: null,
-    waitingNewOperand: false,
-    errorOccurred: false,
-    
-    evaluate: function evaluate(operator) {
-        let result;
-        const operand = +this.screen;
+  #clone() {
+    const clone = new Calculator();
+    clone.memory = this.memory;
+    clone.screen = this.screen;
+    clone.operator = this.operator;
+    clone.waitingNewOperand = this.waitingNewOperand;
+    clone.errorOccurred = this.errorOccurred;
+    return clone;
+  }
+ 
+  #set (keyVal) {
+    const next = this.#clone();
+    const key = Object.keys(keyVal)[0];
+    next[key] = keyVal[key];
+    return next;
+  }
 
-        if (this.lastOperator === '/' && operand === 0) {
-            this.memory = 0;
-            this.screen = 'error!';
-            this.lastOperator = null;
-            this.waitingNewOperand = true;
-            this.errorOccurred = true;
-            return;
-        }
-        if (this.waitingNewOperand) {
-            this.lastOperator = operator;
-            return;
-        }
-        switch (this.lastOperator) {
-            case '+':
-                result = this.memory + operand;
-                break;
-            case '-':
-                result = this.memory - operand;
-                break;
-            case 'x':
-                result = this.memory * operand;
-                break;
-            case '/':
-                result = this.memory / operand;
-                break;
-            case '=':
-            case null:
-                result = operand;
-                break;
-        }
-
-        // treat a result that is too big or too small for the screen as an error 
-        if (result.toFixed(0).length > 9 || (result > 0 && result < 1 && parseFloat(result.toFixed(7)) === 0)) {
-            this.memory = 0;
-            this.screen = 'error!';
-            this.lastOperator = null;
-            this.waitingNewOperand = true;
-            this.errorOccurred = true;
-            return;
-        }
-        
-        this.memory = result;
-        // make sure result doesn't overflow on screen with too many decimal digits and remove scientific notation
-        this.screen = result.toString().length > 9 || result.toString().includes('e')
-                ? result.toFixed(7)
-                : result.toString();
-        this.lastOperator = operator;
-        this.waitingNewOperand = operator === '=' ? false : true;
-        this.errorOccurred = false;
-    },
-
-    appendChar: function appendChar(input) {
-        if (/[0-9.]/.test(input) === false) return;
-        if (input === '0' && this.screen === '0') return;
-        if (!this.waitingNewOperand && this.screen.length >= 9) return;
-
-        if (input >= 0 && input <= 9) {
-            if (this.screen === '0' || this.waitingNewOperand) {
-                this.screen = input;
-                this.waitingNewOperand = false;
-            } else {
-                this.screen += input;
-            }
-        } else if (input === '.') {
-            if (screen.textContent.includes('.')) return;
-            this.screen += '.';
-        }
-
-        this.errorOccurred = false;
-    },
-
-    clear: function clear() {
-        this.memory = 0;
-        this.screen = '0';
-        this.lastOperator = null;
-        this.waitingNewOperand = false;
-        this.errorOccurred = false;
-    },
-
-    backspace: function backspace() {
-        if (this.errorOccurred) return;
-        this.screen = this.screen.length > 1 
-                ? this.screen.split('').slice(0, -1).join('')
-                : '0';
+  calculate(operator) {
+    function issueError() {
+      return new Calculator()
+        .#set({ memory: 0 })
+        .#set({ screen: 'error!' })
+        .#set({ operator: null })
+        .#set({ waitingNewOperand: true })
+        .#set({ errorOccurred: true });
     }
+
+    function formatResult(result) {
+      const integerPart = +result.toString().split('.')[0];
+
+      if (result.toString()[8] === '.') return integerPart;
+      if (result < 0.0000001) return 'error!';
+
+      if (result.toString().includes('e')) {
+        if (result.toString().includes('-')) {
+          return parseFloat(result.toFixed(7));
+        }
+      }
+
+      if (result.toString().length > 9) {
+        if (result.toString().includes('.')) {
+          if (integerPart.toString().length > 10) return 'error!';
+          return result.toFixed(8 - integerPart.toString().length);
+        }
+        return 'error!'
+      }
+
+      return result;
+    }
+
+    const operand = +this.screen;
+    
+    if (this.operator === '/' && operand === 0) {
+      return issueError();
+    }
+    
+    if (this.waitingNewOperand) {
+      return this.#set({ operator: operator });
+    }
+
+    let result;
+
+    switch (this.operator) {
+      case '+':
+        result = this.memory + operand;
+        break;
+      case '-':
+        result = this.memory - operand;
+        break;
+      case 'x':
+        result = this.memory * operand;
+        break;
+      case '/':
+        result = this.memory / operand;
+        break;
+      case '=':
+      case null:
+        result = operand;
+        break;
+    }
+
+    result = formatResult(result);
+
+    if (result === 'error!') {
+      return issueError();
+    }
+    
+    return this
+      .#set({ memory: result })
+      .#set({ screen: result })
+      .#set({ operator })
+      .#set({ waitingNewOperand: operator === '=' ? false : true })
+      .#set({ errorOccurred: false });
+  }
+
+  appendChar(input) {
+    if (!/[0-9.]/.test(input)) return this;
+    if (!this.waitingNewOperand && this.screen.length >= 9) return this;
+    if (input === '0' && this.screen === '0') return this;
+    if (input === '.' && this.screen.includes('.')) return this;
+
+    if (input >= 0 && input <= 9 && (this.screen === '0' || this.waitingNewOperand)) {
+      return this
+        .#set({ screen: input })
+        .#set({ waitingNewOperand: false })
+        .#set({ errorOccurred: false });
+    }
+
+    return this
+      .#set({ screen: this.screen + input })
+      .#set({ errorOccurred: false });
+  }
+
+  backspace() {
+    if (this.errorOccurred) return this;
+    return this.set({ screen: this.screen.length > 1 ? this.screen.split('').slice(0, -1).join('') : '0' });
+  }
+
+  clear() {
+    return new Calculator();
+  }
 };
 
-const keyDownHandler = function keyDownHandler(event) {
-    const char = String.fromCharCode(event.keyCode);
-    if (event.shiftKey && event.keyCode === 187) {
-        calculator.evaluate('+');
-    } else if (event.shiftKey && event.keyCode === 56) {
-        calculator.evaluate('x');
-    } else if (event.keyCode === 189) {
-        calculator.evaluate('-');
-    } else if (event.keyCode === 226) {
-        calculator.evaluate('/');
-    } else if (event.keyCode === 187 || event.keyCode === 13) {
-        calculator.evaluate('=');
-    } else if (char >= 0 && char <= 9) {
-        calculator.appendChar(char);
-    } else if (event.keyCode === 190) {
-        calculator.appendChar('.');
-    } else if (char === '\b') {
-        calculator.backspace();
-    } else if (char === 'C') {
-        calculator.clear();
-    }
-    screen.textContent = calculator.screen;
-}
+let calculator = new Calculator();
 
-const numberPressHandler = function numberPressHandler(event) {
-    calculator.appendChar(this.textContent);
-    screen.textContent = calculator.screen;
-}
+document.addEventListener('keydown', function(event) {
+  if (['+', '-', 'x', '/', '='].includes(event.key)) {
+    calculator = calculator.calculate(event.key);
+  } else if (event.key >= 0 && event.key <= 9 || event.key === '.') {
+    calculator = calculator.appendChar(event.key);
+  } else if (event.key === 'Backspace') {
+    calculator = calculator.backspace();
+  } else if (event.key === 'C') {
+    calculator = calculator.clear();
+  }
+  
+  document.querySelector('span.screen').textContent = calculator.screen;
+});
 
-const arithmeticPressHandler = function arithmeticPressHandler(event) {
-    const operator = this.textContent;
-    calculator.evaluate(operator);
-    screen.textContent = calculator.screen;
-}
+document.querySelectorAll('button.operator').forEach(button => button.addEventListener('click', function() {
+  calculator = calculator.calculate(this.textContent);
+  document.querySelector('span.screen').textContent = calculator.screen;
+}));
 
-const clearPressHandler = function clearPressHandler() {
-    calculator.clear();
-    screen.textContent = calculator.screen;
-}
+document.querySelectorAll('button.number').forEach(button => button.addEventListener('click', function() {
+  calculator = calculator.appendChar(this.textContent);
+  document.querySelector('span.screen').textContent = calculator.screen;
+}));
 
-const backspacePressHandler = function backspacePressHandler() {
-    calculator.backspace();
-    screen.textContent = calculator.screen;
-}
+document.querySelector('button.clear').addEventListener('click', function() {
+  calculator = calculator.clear();
+  document.querySelector('span.screen').textContent = calculator.screen;
+});
 
-document.addEventListener('keydown', keyDownHandler);
-operatorButtons.forEach(button => button.addEventListener('click', arithmeticPressHandler));
-numberButtons.forEach(button => button.addEventListener('click', numberPressHandler));
-clearButton.addEventListener('click', clearPressHandler);
-deleteButton.addEventListener('click', backspacePressHandler);
+document.querySelector('button.backspace').addEventListener('click', function() {
+  calculator = calculator.backspace();
+  document.querySelector('span.screen').textContent = calculator.screen;
+});
