@@ -1,92 +1,104 @@
 class Calculator {
   constructor() {
-    this.memory = 0;
+    this.accumulator = 0;
+    this.operand = 0;
     this.screen = '0';
-    this.operator = null;
+    this.queuedOperation = null;
+    this.lastOperation = null;
     this.waitingNewOperand = false;
     this.errorOccurred = false;
   }
 
   #clone() {
     const clone = new Calculator();
-    clone.memory = this.memory;
+    clone.accumulator = this.accumulator;
+    clone.operand = this.operand;
     clone.screen = this.screen;
-    clone.operator = this.operator;
+    clone.queuedOperation = this.queuedOperation;
+    clone.lastOperation = this.lastOperation;
     clone.waitingNewOperand = this.waitingNewOperand;
     clone.errorOccurred = this.errorOccurred;
     return clone;
   }
  
-  #set (keyVal) {
+  set (keyVal) {
     const next = this.#clone();
     const key = Object.keys(keyVal)[0];
     next[key] = keyVal[key];
     return next;
   }
 
-  calculate(operator) {
+  calculate(operation) {
     function issueError() {
       return new Calculator()
-        .#set({ memory: 0 })
-        .#set({ screen: 'error!' })
-        .#set({ operator: null })
-        .#set({ waitingNewOperand: true })
-        .#set({ errorOccurred: true });
+        .set({ accumulator: 0 })
+        .set({ operand: 0 })
+        .set({ screen: 'error!' })
+        .set({ queuedOperation: null })
+        .set({ lastOperation: null })
+        .set({ waitingNewOperand: true })
+        .set({ errorOccurred: true })
     }
 
     function formatResult(result) {
-      const integerPart = +result.toString().split('.')[0];
-
-      if (result.toString()[8] === '.') return integerPart;
       if (result < 0.0000001) return 'error!';
-
+      
       if (result.toString().includes('e')) {
         if (result.toString().includes('-')) {
           return parseFloat(result.toFixed(7));
         }
       }
-
-      if (result.toString().length > 9) {
-        if (result.toString().includes('.')) {
-          if (integerPart.toString().length > 10) return 'error!';
-          return result.toFixed(8 - integerPart.toString().length);
+      
+      if (result.toString().includes('.')) {
+        const integerPart = +result.toString().split('.')[0];
+        if (result.toString()[8] === '.') {
+          return integerPart;
         }
-        return 'error!'
+        if (result.toString().length > 9) {
+          if (integerPart.toString().length > 10) {
+            return 'error!';  
+          }
+          
+          return parseFloat(result.toFixed(8 - integerPart.toString().length));
+        }
       }
 
       return result;
     }
-
-    const operand = +this.screen;
     
-    if (this.operator === '/' && operand === 0) {
+    if (this.queuedOperation === '/' && this.operand === 0) {
       return issueError();
     }
     
     if (this.waitingNewOperand) {
-      return this.#set({ operator: operator });
+      return this
+        // .set({ accumulator: this.screen }) useless?
+        .set({ queuedOperation: operation });
     }
 
     let result;
 
-    switch (this.operator) {
-      case '+':
-        result = this.memory + operand;
-        break;
-      case '-':
-        result = this.memory - operand;
-        break;
-      case 'x':
-      case '*':
-        result = this.memory * operand;
-        break;
-      case '/':
-        result = this.memory / operand;
-        break;
-      case '=':
-      case null:
-        result = operand;
-        break;
+    if (this.lastOperation === '=' && operation !== '=') {
+      result = +this.screen;
+    } else {
+      switch (this.queuedOperation) {
+        case '+':
+          result = this.accumulator + this.operand;
+          break;
+        case '-':
+          result = this.accumulator - this.operand;
+          break;
+        case 'x':
+        case '*':
+          result = this.accumulator * this.operand;
+          break;
+        case '/':
+          result = this.accumulator / this.operand;
+          break;
+        // case '=': useless?
+        case null:
+          result = this.operand;
+      }
     }
 
     result = formatResult(result);
@@ -94,13 +106,15 @@ class Calculator {
     if (result === 'error!') {
       return issueError();
     }
-    
+
     return this
-      .#set({ memory: result })
-      .#set({ screen: result })
-      .#set({ operator })
-      .#set({ waitingNewOperand: operator === '=' ? false : true })
-      .#set({ errorOccurred: false });
+      .set({ accumulator: result })
+      .set({ operand: operation === '=' ? (this.lastOperation === '=' ? this.operand : +this.screen) : 0 })
+      .set({ screen: result })
+      .set({ queuedOperation: operation === '=' ? this.queuedOperation : operation })
+      .set({ lastOperation: operation })
+      .set({ waitingNewOperand: operation === '=' ? false : true })
+      .set({ errorOccurred: false });
   }
 
   appendChar(input) {
@@ -111,14 +125,16 @@ class Calculator {
 
     if (input >= 0 && input <= 9 && (this.screen === '0' || this.waitingNewOperand)) {
       return this
-        .#set({ screen: input })
-        .#set({ waitingNewOperand: false })
-        .#set({ errorOccurred: false });
+        .set({ screen: input })
+        .set({ operand: +input })
+        .set({ waitingNewOperand: false })
+        .set({ errorOccurred: false });
     }
 
     return this
-      .#set({ screen: this.screen + input })
-      .#set({ errorOccurred: false });
+      .set({ screen: this.screen + input })
+      .set({ operand: +(this.screen + input) })
+      .set({ errorOccurred: false });
   }
 
   backspace() {
@@ -140,7 +156,7 @@ document.addEventListener('keydown', function(event) {
     calculator = calculator.appendChar(event.key);
   } else if (event.key === 'Backspace') {
     calculator = calculator.backspace();
-  } else if (event.key === 'C') {
+  } else if (event.key === 'c') {
     calculator = calculator.clear();
   }
   
