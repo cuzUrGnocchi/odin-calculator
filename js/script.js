@@ -72,7 +72,6 @@ class Calculator {
     
     if (this.waitingNewOperand) {
       return this
-        // .set({ accumulator: this.screen }) useless?
         .set({ queuedOperation: operation });
     }
 
@@ -95,7 +94,6 @@ class Calculator {
         case '/':
           result = this.accumulator / this.operand;
           break;
-        // case '=': useless?
         case null:
           result = this.operand;
       }
@@ -139,7 +137,13 @@ class Calculator {
 
   backspace() {
     if (this.errorOccurred) return this;
-    return this.set({ screen: this.screen.length > 1 ? this.screen.split('').slice(0, -1).join('') : '0' });
+    if (this.screen.length === 1) return this.set({ screen: '0' });
+
+    return this.set({
+      screen: this.screen[this.screen.length - 2] === '.'
+        ? this.screen.split('').slice(0, -2).join('')
+        : this.screen.split('').slice(0, -1).join('')
+    });
   }
 
   clear() {
