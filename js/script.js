@@ -1,7 +1,9 @@
+const DIGIT_LIMIT = 9;
+
 class Calculator {
   constructor() {
-    this.accumulator = 0;
-    this.operand = 0;
+    this.leftOperand = 0;
+    this.rightOperand = 0;
     this.screen = '0';
     this.queuedOperation = null;
     this.lastOperation = null;
@@ -11,8 +13,8 @@ class Calculator {
 
   #clone() {
     const clone = new Calculator();
-    clone.accumulator = this.accumulator;
-    clone.operand = this.operand;
+    clone.leftOperand = this.leftOperand;
+    clone.rightOperand = this.rightOperand;
     clone.screen = this.screen;
     clone.queuedOperation = this.queuedOperation;
     clone.lastOperation = this.lastOperation;
@@ -31,8 +33,8 @@ class Calculator {
   calculate(operation) {
     function issueError() {
       return new Calculator()
-        .set({ accumulator: 0 })
-        .set({ operand: 0 })
+        .set({ leftOperand: 0 })
+        .set({ rightOperand: 0 })
         .set({ screen: 'error!' })
         .set({ queuedOperation: null })
         .set({ lastOperation: null })
@@ -41,38 +43,41 @@ class Calculator {
     }
 
     function formatResult(result) {
-      if (result < 0.0000001) return 'error!';
+      if (result < 1 / 10**(DIGIT_LIMIT - 2) && result > 0) return 'error!';
       
       if (result.toString().includes('e')) {
         if (result.toString().includes('-')) {
-          return parseFloat(result.toFixed(7));
+          return parseFloat(result.toFixed(DIGIT_LIMIT - 2));
         }
       }
       
       if (result.toString().includes('.')) {
         const integerPart = +result.toString().split('.')[0];
-        if (result.toString()[8] === '.') {
+        if (result.toString()[DIGIT_LIMIT - 1] === '.') {
           return integerPart;
         }
         if (result.toString().length > 9) {
-          if (integerPart.toString().length > 10) {
+          if (integerPart.toString().length > DIGIT_LIMIT) {
             return 'error!';  
           }
           
-          return parseFloat(result.toFixed(8 - integerPart.toString().length));
+          return parseFloat(result.toFixed(DIGIT_LIMIT - integerPart.toString().length - 1));
         }
       }
+      
+      if (result.toString().length > DIGIT_LIMIT) return 'error!';
 
       return result;
     }
     
-    if (this.queuedOperation === '/' && this.operand === 0) {
+    if (this.queuedOperation === '/' && this.rightOperand === 0) {
       return issueError();
     }
     
-    if (this.waitingNewOperand) {
+    if (operation !== '=' && this.waitingNewOperand) {
       return this
-        .set({ queuedOperation: operation });
+        .set({ queuedOperation: operation })
+        .set({ lastOperation: operation });
     }
 
     let result;
@@ -82,68 +87,85 @@ class Calculator {
     } else {
       switch (this.queuedOperation) {
         case '+':
-          result = this.accumulator + this.operand;
+          result = this.leftOperand + this.rightOperand;
           break;
         case '-':
-          result = this.accumulator - this.operand;
+          result = this.leftOperand - this.rightOperand;
           break;
         case 'x':
         case '*':
-          result = this.accumulator * this.operand;
+          result = this.leftOperand * this.rightOperand;
           break;
         case '/':
-          result = this.accumulator / this.operand;
+          result = this.leftOperand / this.rightOperand;
           break;
         case null:
-          result = this.operand;
+          result = this.leftOperand;
+          break;
+        }
       }
-    }
-
+        
     result = formatResult(result);
-
+        
     if (result === 'error!') {
       return issueError();
     }
 
     return this
-      .set({ accumulator: result })
-      .set({ operand: operation === '=' ? (this.lastOperation === '=' ? this.operand : +this.screen) : 0 })
+      .set({ leftOperand: result })
+      .set({ rightOperand: (operation === '=' && this.lastOperation === '=') ? this.rightOperand : +this.screen })
       .set({ screen: result })
       .set({ queuedOperation: operation === '=' ? this.queuedOperation : operation })
       .set({ lastOperation: operation })
-      .set({ waitingNewOperand: operation === '=' ? false : true })
+      .set({ waitingNewOperand: true })
       .set({ errorOccurred: false });
   }
 
   appendChar(input) {
     if (!/[0-9.]/.test(input)) return this;
-    if (!this.waitingNewOperand && this.screen.length >= 9) return this;
+    if (!this.waitingNewOperand && this.screen.length >= DIGIT_LIMIT) return this;
     if (input === '0' && this.screen === '0') return this;
     if (input === '.' && this.screen.includes('.')) return this;
 
+    let nextState = this.#clone();
+
     if (input >= 0 && input <= 9 && (this.screen === '0' || this.waitingNewOperand)) {
-      return this
-        .set({ screen: input })
-        .set({ operand: +input })
-        .set({ waitingNewOperand: false })
-        .set({ errorOccurred: false });
+      nextState = nextState
+        .set({ leftOperand: +this.screen })
+        .set({ screen: input });
+    } else {
+      nextState = nextState
+        .set({ screen: this.screen + input });
+    }
+    
+    if (this.lastOperation === '=' || this.lastOperation === null) {
+      nextState = nextState.set({ leftOperand: +(nextState.screen) });
+    } else {
+      nextState = nextState.set({ rightOperand: +(nextState.screen) });
     }
 
-    return this
-      .set({ screen: this.screen + input })
-      .set({ operand: +(this.screen + input) })
+    return nextState
+      .set({ waitingNewOperand: false })
       .set({ errorOccurred: false });
   }
 
   backspace() {
-    if (this.errorOccurred) return this;
-    if (this.screen.length === 1) return this.set({ screen: '0' });
+    if (this.errorOccurred) {
+      return this;
+    }
+    if (this.screen.length === 1) {
+      return this
+        .set({ screen: '0' })
+        .set({ rightOperand: 0 });
+    }
 
-    return this.set({
-      screen: this.screen[this.screen.length - 2] === '.'
-        ? this.screen.split('').slice(0, -2).join('')
-        : this.screen.split('').slice(0, -1).join('')
-    });
+    const screen = this.screen[this.screen.length - 2] === '.'
+      ? this.screen.split('').slice(0, -2).join('')
+      : this.screen.split('').slice(0, -1).join('');
+
+    return this
+      .set({ screen })
+      .set({ rightOperand: +screen });
   }
 
   clear() {
@@ -152,6 +174,8 @@ class Calculator {
 };
 
 let calculator = new Calculator();
+
+document.querySelector('.screen').style.width = `calc(${ DIGIT_LIMIT }ch + 20px)`;
 
 document.addEventListener('keydown', function(event) {
   if (['+', '-', 'x', '*', '/', '=', 'Enter'].includes(event.key)) {
